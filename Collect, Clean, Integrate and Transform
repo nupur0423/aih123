@@ -1,0 +1,32 @@
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.decomposition import PCA
+from scipy import stats
+df = pd.read_csv('diabetes.csv')
+print("Initial Data:")
+print(df.head())
+print("\nMissing Values:")
+print(df.isnull().sum())
+print("\nData Description:")
+print(df.describe())
+df_filled = df.fillna(df.median())
+df_no_duplicates = df_filled.drop_duplicates()
+z_scores = np.abs(stats.zscore(df_no_duplicates.select_dtypes(include=[np.number])))
+df_no_outliers = df_no_duplicates[(z_scores < 3).all(axis=1)]
+scaler = StandardScaler()
+df_scaled = pd.DataFrame(scaler.fit_transform(df_no_outliers.select_dtypes(include=[np.number])), columns=df_no_outliers.select_dtypes(include=[np.number]).columns)
+min_max_scaler = MinMaxScaler()
+df_normalized = pd.DataFrame(min_max_scaler.fit_transform(df_no_outliers.select_dtypes(include=[np.number])), columns=df_no_outliers.select_dtypes(include=[np.number]).columns)
+df_no_outliers['age_group'] = pd.cut(df_no_outliers['Age'], bins=[20, 40, 60, 80], labels=['20-39', '40-59', '60-79'])
+df_encoded = pd.get_dummies(df_no_outliers, columns=['Outcome'])
+df_std = StandardScaler().fit_transform(df_no_outliers.select_dtypes(include=[np.number]))
+pca = PCA(n_components=2)
+df_pca = pca.fit_transform(df_std)
+df_pca_df = pd.DataFrame(data=df_pca, columns=['PC1', 'PC2'])
+print("\nProcessed Data (first few rows):")
+print(df_no_outliers.head())
+print("\nEncoded Data (first few rows):")
+print(df_encoded.head())
+print("\nPCA Data (first few rows):")
+print(df_pca_df.head())
