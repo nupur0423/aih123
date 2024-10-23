@@ -1,0 +1,46 @@
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from scipy import stats
+import matplotlib.pyplot as plt
+import seaborn as sns
+df = pd.read_csv('EDA-HEALTHCARE.csv')
+print("Initial Data:")
+print(df.head())
+print("\nMissing Values:")
+print(df.isnull().sum())
+print("\nData Description:")
+print(df.describe())
+df_filled = df.copy()
+numeric_cols = df.select_dtypes(include=[np.number]).columns
+df_filled[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].median())
+df_no_duplicates = df_filled.drop_duplicates()
+z_scores = np.abs(stats.zscore(df_no_duplicates.select_dtypes(include=[np.number])))
+df_no_outliers = df_no_duplicates[(z_scores < 3).all(axis=1)]
+scaler = StandardScaler()
+df_scaled = pd.DataFrame(scaler.fit_transform(df_no_outliers.select_dtypes(include=[np.number])), columns=df_no_outliers.select_dtypes(include=[np.number]).columns)
+min_max_scaler = MinMaxScaler()
+df_normalized = pd.DataFrame(min_max_scaler.fit_transform(df_no_outliers.select_dtypes(include=[np.number])), columns=df_no_outliers.select_dtypes(include=[np.number]).columns)
+df_no_outliers['age_group'] = pd.cut(df_no_outliers['Age'], bins=[0, 20, 40, 60, 100], labels=['0-19', '20-39', '40-59', '60-99'])
+df_encoded = pd.get_dummies(df_no_outliers, columns=['Gender', 'No-show'])
+plt.figure(figsize=(10, 6))
+sns.histplot(df_no_outliers['Age'], kde=True)
+plt.title('Distribution of Age')
+plt.xlabel('Age')
+plt.ylabel('Frequency')
+plt.show()
+plt.figure(figsize=(10, 6))
+sns.boxplot(x='Gender', y='Age', data=df_no_outliers)
+plt.title('Boxplot of Age by Gender')
+plt.xlabel('Gender')
+plt.ylabel('Age')
+plt.show()
+numeric_df = df_no_outliers.select_dtypes(include=[np.number])
+correlation_matrix = numeric_df.corr()plt.figure(figsize=(12, 8))
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt='.2f', linewidths=0.5)
+plt.title('Correlation Matrix')
+plt.show()
+print("\nProcessed Data (first few rows):")
+print(df_no_outliers.head())
+print("\nEncoded Data (first few rows):")
+print(df_encoded.head())
